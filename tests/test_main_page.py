@@ -1,67 +1,53 @@
 import pytest
+import allure
 from page_objects.main_page import MainPage
-from page_objects.login_page import LoginPage
 from locators.main_page_locators import MainPageLocators
+from tests.conftest import BASE_URL
+
 
 @pytest.mark.nondestructive
 class TestMainPage:
-    def test_navigation_to_constructor(self, browser, forgot_password_url, base_url):
-        # Проверяет переход по клику на «Конструктор».
-        browser.get(forgot_password_url)
-        page = MainPage(browser)
+    @allure.title("Переход по клику на «Конструктор»")
+    def test_navigation_to_constructor(self, driver, forgot_password_url):
+
+        driver.get(forgot_password_url)
+        page = MainPage(driver)
         page.go_to_constructor()
-        current_url = browser.current_url.rstrip("/")
-        expected_url = base_url.rstrip("/")
+        current_url = driver.current_url.rstrip("/")
+        expected_url = BASE_URL.rstrip("/")
         assert current_url == expected_url, f"Ожидаемый URL: {expected_url}, но был: {current_url}"
 
-    def test_navigation_to_order_feed(self, browser, base_url):
-        # Проверяет переход по клику на «Лента заказов».
-        browser.get(base_url)
-        page = MainPage(browser)
-        page.go_to_order_feed()
-        assert "feed" in browser.current_url, "Не удалось перейти на страницу ленты заказов"
+    @allure.title("Переход по клику на «Лента заказов»")
+    def test_navigation_to_order_feed(self, driver):
 
-    def test_ingredient_modal_open_close(self, browser, base_url):
-        # Проверяет открытие и закрытие модального окна ингредиента.
-        browser.get(base_url)
-        page = MainPage(browser)
+        driver.get(BASE_URL)
+        page = MainPage(driver)
+        page.go_to_order_feed()
+        assert "feed" in driver.current_url, "Не удалось перейти на страницу ленты заказов"
+
+    @allure.title("Открытие и закрытие модального окна ингредиента")
+    def test_ingredient_modal_open_close(self, driver):
+
+        driver.get(BASE_URL)
+        page = MainPage(driver)
         page.open_ingredient_modal()
         assert page.is_element_visible(MainPageLocators.MODAL), "Модальное окно не появилось"
         page.close_modal()
         assert not page.is_element_visible(MainPageLocators.MODAL), "Модальное окно не закрылось"
 
-    def test_add_ingredient_to_order(self, browser, base_url):
-        # Проверяет добавление ингредиента в заказ.
-        browser.get(base_url)
-        page = MainPage(browser)
-        # Добавить первый ингредиент в заказ
+    @allure.title("Добавление ингредиента в заказ")
+    def test_add_ingredient_to_order(self, driver):
+        driver.get(BASE_URL)
+        page = MainPage(driver)
         page.add_ingredient_to_order(ingredient_index=0)
 
-        # Проверить, что счетчик у ингредиента увеличился
         assert page.is_ingredient_counter_updated(ingredient_index=0), "Счетчик ингредиента не увеличился"
 
-    @pytest.fixture
-    def setup(self, browser, base_url, create_test_user):
-        # Логин пользователя перед тестом.
-        user_data, access_token = create_test_user
-        browser.get(base_url)
+    @allure.title("Возможность оформления заказа залогиненным пользователем")
+    def test_place_order_logged_in(self, main_page):
+        main_page.add_ingredient_to_order(ingredient_index=0)
 
-        login_page = LoginPage(browser)
-        login_page.go_to_login_page()
-        login_page.login(user_data["email"], user_data["password"])
-        self.main_page = MainPage(browser)
-
-    @pytest.mark.usefixtures("setup")
-    def test_place_order_logged_in(self):
-        # Проверяет возможность оформления заказа залогиненным пользователем.
-        # Добавить ингредиент в заказ
-        self.main_page.add_ingredient_to_order(ingredient_index=0)
-
-        # Проверить оформление заказа
-        self.main_page.place_order()
-        assert self.main_page.is_order_success_modal_visible(), "Модальное окно успешного заказа не появилось"
-
-
-
+        main_page.place_order()
+        assert main_page.is_order_success_modal_visible(), "Модальное окно успешного заказа не появилось"
 
 
